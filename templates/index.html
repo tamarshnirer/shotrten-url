@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">URL Shortener</h1>
+        <form method="post" class="mb-4">
+            <div class="mb-3">
+                <label for="long_url" class="form-label">Enter a long URL:</label>
+                <input type="url" id="long_url" name="long_url" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Shorten</button>
+        </form>
+        {% if short_url %}
+        <div class="alert alert-info" role="alert">
+            Short URL: <a href="{{ short_url }}" target="_blank" class="alert-link">{{ short_url }}</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.6/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.min.js"></script>
+</body>
+</html>
