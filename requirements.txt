@@ -5,3 +5,4 @@ Jinja2==3.1.4
 requests==2.25.1
 selenium==4.23.0
 pytest==8.3.1
+webdriver-manager==4.0.1
