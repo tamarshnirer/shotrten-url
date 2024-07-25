@@ -65,3 +65,24 @@ jobs:
 
       - name: Push image with new tag
         run: docker push tamarshnirer/shorten-url:${{ env.new_version }}
+      - name: Checkout Target Repository
+        uses: actions/checkout@v4
+        with:
+          repository: tamarshnirer/example-gitops
+          token: ${{ secrets.TARGET_REPO_TOKEN }}
+          path: example-gitops
+
+      - name: Update Deployment File
+        run: |
+          cd example-gitops
+          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.new_version }}"
+          sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
+
+      - name: Commit and Push Changes
+        run: |
+          cd example-gitops
+          git config user.name 'github-actions'
+          git config user.email 'actions@github.com'
+          git add shorten-url-dep.yaml
+          git commit -m 'Update deployment image'
+          git push origin main
