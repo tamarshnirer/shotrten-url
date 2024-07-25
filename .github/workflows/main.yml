@@ -6,21 +6,29 @@ on:
   pull_request:
     branches:
       - main
+
 jobs:
   job:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ secrets.TAG }}
+
     steps:
       - name: Checkout Code 
         uses: actions/checkout@v4
+
       - name: Build 
         run: docker build -t test-image .
+
       - name: Run
         run: docker run --rm -d -p 8000:8000 --name test-container test-image
+
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
           pip3 install -r requirements.txt
           pip3 install pytest
+
       - name: Tests
         run: |
           RUNNING_STATE=$(docker inspect -f '{{.State.Running}}' test-container)
@@ -33,17 +41,27 @@ jobs:
           fi
           python3 -m pytest tests.py
           sudo docker stop test-container
-      - name: Bump version and push the tag
-        id: tag_action
-        uses: anothrNick/github-tag-action@1.64.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INITIAL_VERSION: 1.0.0
-          WITH_V: false
-          DEFAULT_BUMP: patch
-          DRY_RUN: false
 
-      - name: Set tag version as environment variable
-        run: echo "TAG_VERSION=${{ steps.bump_version.outputs.new_tag }}" >> $GITHUB_ENV
-          
-      
+      - name: Bump version
+        id: bump_version
+        run: |
+          current_version=${{ env.TAG }}
+          IFS='.' read -r -a version_parts <<< "$current_version"
+          version_parts[2]=$((version_parts[2] + 1))
+          new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
+          echo "new_version=$new_version" >> $GITHUB_ENV
+
+      - name: Display new version
+        run: echo "The new version is ${{ env.new_version }}"
+
+      - name: Build image with new version
+        run: docker build -t tamarshnirer/shorten-url:${{ env.new_version }} .
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: tamarshnirer
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Push image with new tag
+        run: docker push tamarshnirer/shorten-url:${{ env.new_version }}
