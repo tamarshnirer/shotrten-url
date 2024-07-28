@@ -12,7 +12,7 @@ jobs:
   job:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ secrets.TAG }}
+      TAG: ${{ env.TAG }}
 
     steps:
       - name: Checkout Code 
@@ -52,11 +52,14 @@ jobs:
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
 
+      - name: Update TAG
+        run: echo "TAG=${{ env.new_version }}" >> $GITHUB_ENV
+
       - name: Display new version
         run: echo "The new version is ${{ env.new_version }}"
 
       - name: Renaming the image with the new version
-        run: docker tag test-image:latest tamarshnirer/shorten-url:${{ env.new_version }}
+        run: docker tag test-image:latest tamarshnirer/shorten-url:${{ env.TAG }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -65,7 +68,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push image with new tag
-        run: docker push tamarshnirer/shorten-url:${{ env.new_version }}
+        run: docker push tamarshnirer/shorten-url:${{ env.TAG }}
       
       - name: Checkout Target Repository
         uses: actions/checkout@v4
@@ -77,7 +80,7 @@ jobs:
       - name: Update Deployment File
         run: |
           cd example-gitops
-          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.new_version }}"
+          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.TAG }}"
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
 
       - name: Commit and Push Changes
