@@ -54,8 +54,8 @@ jobs:
       - name: Display new version
         run: echo "The new version is ${{ env.new_version }}"
 
-      - name: Build image with new version
-        run: docker build -t tamarshnirer/shorten-url:${{ env.new_version }} .
+      - name: Renaming the image with the new version
+        run: docker tag test-image:latest tamarshnirer/shorten-url:${{ env.new_version }
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
