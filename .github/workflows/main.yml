@@ -56,7 +56,7 @@ jobs:
         run: echo "The new version is ${{ env.new_version }}"
 
       - name: Renaming the image with the new version
-        run: docker tag test-image:latest tamarshnirer/shorten-url:${{ env.new_version }
+        run: docker tag test-image:latest tamarshnirer/shorten-url:${{ env.new_version }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -66,6 +66,7 @@ jobs:
 
       - name: Push image with new tag
         run: docker push tamarshnirer/shorten-url:${{ env.new_version }}
+      
       - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
