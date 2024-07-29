@@ -79,6 +79,12 @@ jobs:
           cd example-gitops
           NEW_IMAGE="tamarshnirer/shorten-url:${{ env.new_version }}"
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
+          cat shorten-url-dep.yaml
+
+      - name: Check File Changes
+        run: |
+          cd example-gitops
+          git status
 
       - name: Commit and Push Changes
         run: |
@@ -86,7 +92,8 @@ jobs:
           git config user.name 'github-actions'
           git config user.email 'actions@github.com'
           git add shorten-url-dep.yaml
-          git commit -m 'Update deployment image'
+          git status
+          git commit -m 'Update deployment image' || echo "No changes to commit"
           git push origin main
 
       - name: Install GitHub CLI
