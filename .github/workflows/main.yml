@@ -70,7 +70,7 @@ jobs:
       - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
-          repository: tamarshnirer/example-gitops
+          repository: tamarshnirer/shorten-url
           token: ${{ secrets.TARGET_REPO_TOKEN }}
           path: example-gitops
 
@@ -94,6 +94,6 @@ jobs:
 
       - name: Update TAG Secret
         run: |
-          echo "${{ env.new_version }}" | gh secret set TAG --repo ${{ github.repository }}
+          echo "${{ env.new_version }}" | gh secret set TAG --repo tamarshnirer/shorten-url
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
