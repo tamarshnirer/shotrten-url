@@ -70,7 +70,7 @@ jobs:
       - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
-          repository: tamarshnirer/shorten-url
+          repository: tamarshnirer/example-gitops
           token: ${{ secrets.TARGET_REPO_TOKEN }}
           path: example-gitops
 
