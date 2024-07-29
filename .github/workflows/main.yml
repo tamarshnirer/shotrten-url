@@ -12,7 +12,7 @@ jobs:
   job:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ vars.TAG }}  # Referencing the repository variable
+      TAG: ${{ secrets.TAG }}  # Referencing the secret
 
     steps:
       - name: Checkout Code
@@ -46,19 +46,11 @@ jobs:
       - name: Bump version
         id: bump_version
         run: |
-          current_version=${{ env.TAG }}
+          current_version=${{ secrets.TAG }}
           IFS='.' read -r -a version_parts <<< "$current_version"
           version_parts[2]=$((version_parts[2] + 1))
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
-
-      - name: Update TAG in Repository Variables
-        run: |
-          curl -X PATCH \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/actions/variables/TAG \
-            -d '{"name":"TAG","value":"'${{ env.new_version }}'"}'
 
       - name: Display new version
         run: echo "The new version is ${{ env.new_version }}"
@@ -96,3 +88,12 @@ jobs:
           git add shorten-url-dep.yaml
           git commit -m 'Update deployment image'
           git push origin main
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
+      - name: Update TAG Secret
+        run: |
+          echo "${{ env.new_version }}" | gh secret set TAG --repo ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
