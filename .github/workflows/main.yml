@@ -99,8 +99,9 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install gh
 
-      - name: Update TAG Secret
-        run: |
-          echo "${{ env.new_version }}" | gh secret set TAG --repo tamarshnirer/shorten-url
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - name: Update Github Secret
+        uses: NikhilVashistha/update-github-action-secret@v1.0.3
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} 
+          secret_name: 'TAG'
+          secret_value: ${{ env.new_version }}'
