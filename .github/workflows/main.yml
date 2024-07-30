@@ -46,22 +46,13 @@ jobs:
       - name: Bump version
         id: bump_version
         run: |
-          current_version="${{ secrets.TAG }}"
-          echo "Current version: $current_version"
-          
-          # Extract the major, minor, and patch components
+          current_version=${{ env.TAG }}
           IFS='.' read -r -a version_parts <<< "$current_version"
-          
-          # Increment the patch version
           version_parts[2]=$((version_parts[2] + 1))
-          
-          # Join the parts back into a new version string
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
-          
-          echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
 
-      - name: Display new version
+      - name: Display new version for debugging
         run: echo "The new version is ${{ env.new_version }}"
 
       - name: Renaming the image with the new version
