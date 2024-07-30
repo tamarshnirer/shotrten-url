@@ -12,7 +12,7 @@ jobs:
   job:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ secrets.TAG }}  # Referencing the secret
+      TAG: ${{ secrets.TAG }}  
 
     steps:
       - name: Checkout Code
@@ -61,7 +61,7 @@ jobs:
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
 
-        - name: Display new version
+      - name: Display new version
         run: echo "The new version is ${{ env.new_version }}"
         env:
           new_version: ${{ steps.bump_version.outputs.new_version }}
@@ -98,10 +98,6 @@ jobs:
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
           cat shorten-url-dep.yaml
 
-      - name: Check File Changes
-        run: |
-          cd example-gitops
-          git status
 
       - name: Commit and Push Changes
         run: |
