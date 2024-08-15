@@ -12,16 +12,16 @@ jobs:
   job:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ secrets.TAG }}  
+      TAG: ${{ secrets.TAG }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
+      - name: Build
         run: docker build -t test-image .
 
-      - name: Run Docker Container
+      - name: Run
         run: docker run --rm -d -p 8000:8000 --name test-container test-image
 
       - name: Install dependencies
@@ -30,11 +30,20 @@ jobs:
           pip3 install -r requirements.txt
           pip3 install pytest
 
-      - name: Run Tests
+      - name: Tests
         run: |
+          RUNNING_STATE=$(docker inspect -f '{{.State.Running}}' test-container)
+          echo "Container state: $RUNNING_STATE"
+          if [ "$RUNNING_STATE" == "true" ]; then
+            echo "Container is running."
+          else
+            echo "Container is not running."
+            exit 1
+          fi
           python3 -m pytest tests.py
+          sudo docker stop test-container
 
-      - name: Bump Version
+      - name: Bump version
         id: bump_version
         run: |
           current_version="${{ env.TAG }}"
@@ -42,20 +51,26 @@ jobs:
           version_parts[2]=$((version_parts[2] + 1))
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
-          
-      - name: Print all environment variables
-        run: printenv
 
-      - name: Validate new_version
+      - name: Print Environment Variables
         run: |
-          if [ -z "${{ env.new_version }}" ]; then
-            echo "Error: new_version is empty."
-            exit 1
-          fi
+          echo "Current TAG is: ${{ secrets.TAG }}"
+          echo "new_version from GITHUB_ENV is: ${{ env.new_version }}"
 
-      - name: Rename Docker Image
+      - name: Sanitize new_version
         run: |
-          docker tag test-image:latest "tamarshnirer/shorten-url:${{ env.new_version }}"
+          sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
+          echo "Sanitized version is: $sanitized_version"
+          echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
+
+      - name: Print Sanitized New Version
+        run: |
+          echo "SANITIZED_NEW_VERSION is: ${{ env.SANITIZED_NEW_VERSION }}"
+
+      - name: Renaming the image with the sanitized version
+        run: |
+          echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+          docker tag test-image:latest "tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -63,7 +78,7 @@ jobs:
           username: tamarshnirer
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Push Docker Image
+      - name: Push image with new tag
         run: docker push tamarshnirer/shorten-url:${{ env.new_version }}
 
       - name: Checkout Target Repository
@@ -76,7 +91,9 @@ jobs:
       - name: Update Deployment File
         run: |
           cd example-gitops
-          sed -i "s|image: .*|image: tamarshnirer/shorten-url:${{ env.new_version }}|" shorten-url-dep.yaml
+          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.new_version }}"
+          sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
+          cat shorten-url-dep.yaml
 
       - name: Commit and Push Changes
         run: |
@@ -84,5 +101,16 @@ jobs:
           git config user.name 'github-actions'
           git config user.email 'actions@github.com'
           git add shorten-url-dep.yaml
+          git status
           git commit -m 'Update deployment image' || echo "No changes to commit"
           git push origin main
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
+      - name: Update Github Secret
+        uses: NikhilVashistha/update-github-action-secret@v1.0.3
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          secret_name: 'TAG'
+          secret_value: ${{ env.new_version }}
