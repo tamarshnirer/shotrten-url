@@ -51,19 +51,21 @@ jobs:
           version_parts[2]=$((version_parts[2] + 1))
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
-
-      - name: Display new version for debugging
-        run: echo "The new version is ${{ env.new_version }}"
-
-      - name: Renaming the image with the new version
+          
+      - name: Log new_version for debugging
+        run: echo "New version is: '${{ env.new_version }}'"
+      
+      - name: Sanitize new_version
         run: |
-          if [ -z "${{ env.new_version }}" ]; then
-            echo "Error: new_version is empty."
-            exit 1
-          fi
-          echo "Renaming image to tamarshnirer/shorten-url:${{ env.new_version }}"
-          docker tag test-image:latest "tamarshnirer/shorten-url:${{ env.new_version }}"
-
+          sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
+          echo "Sanitized version is: $sanitized_version"
+          echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
+      
+      - name: Renaming the image with the sanitized version
+        run: |
+          echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+          docker tag test-image:latest "tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+    
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
