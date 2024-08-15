@@ -58,7 +58,7 @@ jobs:
       - name: Renaming the image with the new version
         run: |
           echo "Renaming image to tamarshnirer/shorten-url:${{ env.new_version }}"
-          docker tag test-image:latest tamarshnirer/shorten-url:${{ env.new_version }}
+          docker tag test-image:latest "tamarshnirer/shorten-url:${{ env.new_version }}"
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
