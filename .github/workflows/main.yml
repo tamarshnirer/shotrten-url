@@ -57,6 +57,10 @@ jobs:
 
       - name: Renaming the image with the new version
         run: |
+          if [ -z "${{ env.new_version }}" ]; then
+            echo "Error: new_version is empty."
+            exit 1
+          fi
           echo "Renaming image to tamarshnirer/shorten-url:${{ env.new_version }}"
           docker tag test-image:latest "tamarshnirer/shorten-url:${{ env.new_version }}"
 
