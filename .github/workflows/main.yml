@@ -42,9 +42,9 @@ jobs:
           version_parts[2]=$((version_parts[2] + 1))
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
-
-      - name: Log new_version
-        run: echo "New version is: ${{ env.new_version }}"
+          
+      - name: Print all environment variables
+        run: printenv
 
       - name: Validate new_version
         run: |
