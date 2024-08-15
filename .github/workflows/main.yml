@@ -112,5 +112,6 @@ jobs:
         uses: NikhilVashistha/update-github-action-secret@v1.0.3
         with:
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          secret_name: 'TAG'
-          secret_value: '{{ env.SANITIZED_NEW_VERSION }}'
+          secret_name: TAG
+          secret_value: ${{ env.new_version }}
+          variable: false
