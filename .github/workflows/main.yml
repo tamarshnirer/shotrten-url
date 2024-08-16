@@ -108,13 +108,8 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install gh
 
-      - name: Update Github Secret
-        uses: NikhilVashistha/update-github-action-secret@v1.0.3
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          secret_name: TAG
-          secret_value: ${{ env.SANITIZED_NEW_VERSION }}
-        env:
-          TAG: ${{ secrets.TAG }}
-          new_version: ${{ env.new_version }}
-          SANITIZED_NEW_VERSION: ${{ env.SANITIZED_NEW_VERSION }}
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.PERSONAL_ACCESS_TOKEN }}" | gh auth login --with-token
+      
+      - name: Update GitHub Secret in shorten-url repo
+        run: gh secret set TAG --body "${{ env.SANITIZED_NEW_VERSION }}" --repo tamarshnirer/shorten-url
