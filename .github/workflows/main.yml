@@ -11,8 +11,6 @@ on:
 jobs:
   job:
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ secrets.TAG }}
 
     steps:
       - name: Checkout Code
@@ -43,34 +41,21 @@ jobs:
           python3 -m pytest tests.py
           sudo docker stop test-container
 
-      - name: Bump version
-        id: bump_version
+      - name: Fetch latest tag from DockerHub
         run: |
-          current_version="${{ env.TAG }}"
-          IFS='.' read -r -a version_parts <<< "$current_version"
+          latest_tag=$(curl -s https://registry.hub.docker.com/v1/repositories/tamarshnirer/shorten-url/tags | jq -r '.[].name' | sort -V | tail -n 1)
+          echo "Latest tag: $latest_tag"
+          IFS='.' read -r -a version_parts <<< "$latest_tag"
           version_parts[2]=$((version_parts[2] + 1))
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
 
-      - name: Print Environment Variables
-        run: |
-          echo "Current TAG is: ${{ secrets.TAG }}"
-          echo "new_version from GITHUB_ENV is: ${{ env.new_version }}"
-
       - name: Sanitize new_version
         run: |
-          if [[ -z "${{ env.new_version }}" ]]; then
-            echo "SANITIZED_NEW_VERSION=latest" >> $GITHUB_ENV
-          else
-            sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_' | sed 's/^\.*//;s/\.*$//')
-            if [[ -z "$sanitized_version" ]]; then
-              echo "SANITIZED_NEW_VERSION=latest" >> $GITHUB_ENV
-            else
-              echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
-            fi
-          fi
+          sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
+          echo "Sanitized version is: $sanitized_version"
+          echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
 
-      
       - name: Renaming the image with the sanitized version
         run: |
           echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
@@ -83,7 +68,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push image with new tag
-        run: docker push tamarshnirer/shorten-url:${{ env.sanitized_version }}
+        run: docker push tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
       - name: Checkout Target Repository
         uses: actions/checkout@v4
@@ -95,7 +80,7 @@ jobs:
       - name: Update Deployment File
         run: |
           cd example-gitops
-          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.sanitized_version }}"
+          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
           cat shorten-url-dep.yaml
 
@@ -108,12 +93,3 @@ jobs:
           git status
           git commit -m 'Update deployment image' || echo "No changes to commit"
           git push origin main
-
-      - name: Install GitHub CLI
-        run: sudo apt-get install gh
-
-      - name: Authenticate GitHub CLI
-        run: echo "${{ secrets.PERSONAL_ACCESS_TOKEN }}" | gh auth login --with-token
-      
-      - name: Update GitHub Secret in shorten-url repo
-        run: gh secret set TAG --body "${{ env.SANITIZED_NEW_VERSION }}" --repo tamarshnirer/shorten-url
