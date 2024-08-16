@@ -58,19 +58,19 @@ jobs:
           echo "new_version from GITHUB_ENV is: ${{ env.new_version }}"
 
       - name: Sanitize new_version
+        id: sanitize_version
         run: |
           sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
-          echo "Sanitized version is: $sanitized_version"
-          echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
+          echo "sanitized_version=$sanitized_version" >> $GITHUB_ENV
 
       - name: Print Sanitized New Version
         run: |
-          echo "SANITIZED_NEW_VERSION is: ${{ env.SANITIZED_NEW_VERSION }}"
+          echo "SANITIZED_NEW_VERSION is: ${{ env.sanitized_version }}"
 
       - name: Renaming the image with the sanitized version
         run: |
-          echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
-          docker tag test-image:latest tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
+          echo "Renaming image to tamarshnirer/shorten-url:${{ env.sanitized_version }}"
+          docker tag test-image:latest tamarshnirer/shorten-url:${{ env.sanitized_version }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -79,7 +79,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push image with new tag
-        run: docker push tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
+        run: docker push tamarshnirer/shorten-url:${{ env.sanitized_version }}
 
       - name: Checkout Target Repository
         uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
       - name: Update Deployment File
         run: |
           cd example-gitops
-          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.sanitized_version }}"
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
           cat shorten-url-dep.yaml
 
