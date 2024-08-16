@@ -1,4 +1,5 @@
-name: ci
+name: CI
+
 on:
   push:
     branches:
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  job:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +23,7 @@ jobs:
       - name: Run Docker Container
         run: docker run --rm -d -p 8000:8000 --name test-container test-image
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           python3 -m pip install --upgrade pip
           pip3 install -r requirements.txt
@@ -39,20 +40,20 @@ jobs:
             exit 1
           fi
           python3 -m pytest tests.py
-          sudo docker stop test-container
+          docker stop test-container
 
       - name: Fetch Latest Tag
         id: fetch_tag
         run: |
-          tags=$(docker manifest inspect tamarshnirer/shorten-url | jq -r '.manifests[].tag' | sort -V)
+          tags=$(curl -s "https://hub.docker.com/v2/repositories/tamarshnirer/shorten-url/tags/?page_size=100" | jq -r '.results[].name' | sort -V)
           latest_tag=$(echo "$tags" | tail -n 1)
-          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
+          echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
 
       - name: Bump Version
         id: bump_version
         run: |
-          current_version="${{ env.latest_tag }}"
+          current_version="${{ env.LATEST_TAG }}"
           IFS='.' read -r -a version_parts <<< "$current_version"
           if [ ${#version_parts[@]} -lt 3 ]; then
             version_parts[1]=0
@@ -61,27 +62,26 @@ jobs:
             version_parts[2]=$((version_parts[2] + 1))
           fi
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
-          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "NEW_VERSION=${new_version}" >> $GITHUB_ENV
           echo "Current TAG: $current_version"
           echo "New Version: $new_version"
 
       - name: Sanitize new_version
         run: |
-          sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
+          sanitized_version=$(echo "${{ env.NEW_VERSION }}" | tr -cd '[:alnum:].-_')
           sanitized_version=$(echo "$sanitized_version" | sed 's/^[.-]*//;s/[.-]*$//')
-          echo "Sanitized version is: $sanitized_version"
-          echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
+          echo "SANITIZED_NEW_VERSION=${sanitized_version}" >> $GITHUB_ENV
 
       - name: Print Environment Variables
         run: |
-          echo "Current TAG is: ${{ env.latest_tag }}"
-          echo "new_version from GITHUB_ENV is: ${{ env.new_version }}"
+          echo "Current TAG is: ${{ env.LATEST_TAG }}"
+          echo "new_version from GITHUB_ENV is: ${{ env.NEW_VERSION }}"
           echo "SANITIZED_NEW_VERSION is: ${{ env.SANITIZED_NEW_VERSION }}"
 
-      - name: Renaming the image with the sanitized version
+      - name: Rename the Image with the Sanitized Version
         run: |
           echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
-          docker tag test-image:latest tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
+          docker tag test-image tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -89,7 +89,7 @@ jobs:
           username: tamarshnirer
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Push image with new tag
+      - name: Push Image with New Tag
         run: docker push tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
       - name: Checkout Target Repository
