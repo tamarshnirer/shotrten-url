@@ -41,20 +41,36 @@ jobs:
           python3 -m pytest tests.py
           sudo docker stop test-container
 
-      - name: Fetch latest tag from DockerHub
+      - name: Fetch Latest Tag
+        id: fetch_tag
         run: |
-          latest_tag=$(curl -s https://registry.hub.docker.com/v1/repositories/tamarshnirer/shorten-url/tags | jq -r '.[].name' | sort -V | tail -n 1)
+          latest_tag=$(docker pull tamarshnirer/shorten-url:latest | grep 'Status: Downloaded newer image' | awk -F ':' '{print $NF}')
+          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
-          IFS='.' read -r -a version_parts <<< "$latest_tag"
+
+      - name: Bump Version
+        id: bump_version
+        run: |
+          current_version="${{ env.latest_tag }}"
+          IFS='.' read -r -a version_parts <<< "$current_version"
           version_parts[2]=$((version_parts[2] + 1))
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "Current TAG: $current_version"
+          echo "New Version: $new_version"
 
       - name: Sanitize new_version
         run: |
           sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
+          sanitized_version=$(echo "$sanitized_version" | sed 's/^[.-]*//;s/[.-]*$//')
           echo "Sanitized version is: $sanitized_version"
           echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
+
+      - name: Print Environment Variables
+        run: |
+          echo "Current TAG is: ${{ env.latest_tag }}"
+          echo "new_version from GITHUB_ENV is: ${{ env.new_version }}"
+          echo "SANITIZED_NEW_VERSION is: ${{ env.SANITIZED_NEW_VERSION }}"
 
       - name: Renaming the image with the sanitized version
         run: |
@@ -93,3 +109,14 @@ jobs:
           git status
           git commit -m 'Update deployment image' || echo "No changes to commit"
           git push origin main
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
+      - name: Update Github Secret
+        uses: NikhilVashistha/update-github-action-secret@v1.0.3
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          secret_name: TAG
+          secret_value: ${{ env.new_version }}
+          variable: false
