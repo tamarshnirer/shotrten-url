@@ -16,10 +16,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build
+      - name: Build Docker Image
         run: docker build -t test-image .
 
-      - name: Run
+      - name: Run Docker Container
         run: docker run --rm -d -p 8000:8000 --name test-container test-image
 
       - name: Install dependencies
@@ -28,7 +28,7 @@ jobs:
           pip3 install -r requirements.txt
           pip3 install pytest
 
-      - name: Tests
+      - name: Run Tests
         run: |
           RUNNING_STATE=$(docker inspect -f '{{.State.Running}}' test-container)
           echo "Container state: $RUNNING_STATE"
@@ -44,7 +44,8 @@ jobs:
       - name: Fetch Latest Tag
         id: fetch_tag
         run: |
-          latest_tag=$(docker pull tamarshnirer/shorten-url:latest | grep 'Status: Downloaded newer image' | awk -F ':' '{print $NF}')
+          tags=$(docker manifest inspect tamarshnirer/shorten-url | jq -r '.manifests[].tag' | sort -V)
+          latest_tag=$(echo "$tags" | tail -n 1)
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
 
@@ -53,7 +54,12 @@ jobs:
         run: |
           current_version="${{ env.latest_tag }}"
           IFS='.' read -r -a version_parts <<< "$current_version"
-          version_parts[2]=$((version_parts[2] + 1))
+          if [ ${#version_parts[@]} -lt 3 ]; then
+            version_parts[1]=0
+            version_parts[2]=$((version_parts[0] + 1))
+          else
+            version_parts[2]=$((version_parts[2] + 1))
+          fi
           new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "Current TAG: $current_version"
