@@ -109,14 +109,3 @@ jobs:
           git status
           git commit -m 'Update deployment image' || echo "No changes to commit"
           git push origin main
-
-      - name: Install GitHub CLI
-        run: sudo apt-get install gh
-
-      - name: Update Github Secret
-        uses: NikhilVashistha/update-github-action-secret@v1.0.3
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          secret_name: TAG
-          secret_value: ${{ env.new_version }}
-          variable: false
