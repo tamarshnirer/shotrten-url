@@ -58,19 +58,23 @@ jobs:
           echo "new_version from GITHUB_ENV is: ${{ env.new_version }}"
 
       - name: Sanitize new_version
-        id: sanitize_version
         run: |
-          sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_')
-          echo "sanitized_version=$sanitized_version" >> $GITHUB_ENV
+          if [[ -z "${{ env.new_version }}" ]]; then
+            echo "SANITIZED_NEW_VERSION=latest" >> $GITHUB_ENV
+          else
+            sanitized_version=$(echo "${{ env.new_version }}" | tr -cd '[:alnum:].-_' | sed 's/^\.*//;s/\.*$//')
+            if [[ -z "$sanitized_version" ]]; then
+              echo "SANITIZED_NEW_VERSION=latest" >> $GITHUB_ENV
+            else
+              echo "SANITIZED_NEW_VERSION=$sanitized_version" >> $GITHUB_ENV
+            fi
+          fi
 
-      - name: Print Sanitized New Version
-        run: |
-          echo "SANITIZED_NEW_VERSION is: ${{ env.sanitized_version }}"
-
+      
       - name: Renaming the image with the sanitized version
         run: |
-          echo "Renaming image to tamarshnirer/shorten-url:${{ env.sanitized_version }}"
-          docker tag test-image:latest tamarshnirer/shorten-url:${{ env.sanitized_version }}
+          echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+          docker tag test-image:latest tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
