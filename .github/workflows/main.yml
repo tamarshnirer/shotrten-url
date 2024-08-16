@@ -72,12 +72,6 @@ jobs:
           sanitized_version=$(echo "$sanitized_version" | sed 's/^[.-]*//;s/[.-]*$//')
           echo "SANITIZED_NEW_VERSION=${sanitized_version}" >> $GITHUB_ENV
 
-      - name: Print Environment Variables
-        run: |
-          echo "Current TAG is: ${{ env.LATEST_TAG }}"
-          echo "new_version from GITHUB_ENV is: ${{ env.NEW_VERSION }}"
-          echo "SANITIZED_NEW_VERSION is: ${{ env.SANITIZED_NEW_VERSION }}"
-
       - name: Rename the Image with the Sanitized Version
         run: |
           echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
