@@ -66,14 +66,11 @@ jobs:
           echo "Current TAG: $current_version"
           echo "New Version: $new_version"
 
-      - name: Sanitize new_version
+      - name: Sanitize new_version and Renaming the Image
         run: |
           sanitized_version=$(echo "${{ env.NEW_VERSION }}" | tr -cd '[:alnum:].-_')
           sanitized_version=$(echo "$sanitized_version" | sed 's/^[.-]*//;s/[.-]*$//')
           echo "SANITIZED_NEW_VERSION=${sanitized_version}" >> $GITHUB_ENV
-
-      - name: Rename the Image with the Sanitized Version
-        run: |
           echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
           docker tag test-image tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
