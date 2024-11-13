@@ -81,7 +81,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push Image with New Tag
-        run: docker push tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
+        run: docker push tamarshnirer/shorten-url:${sanitized_version}
 
       - name: Checkout Target Repository
         uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
       - name: Update Deployment File
         run: |
           cd example-gitops
-          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+          NEW_IMAGE="tamarshnirer/shorten-url:${sanitized_version}"
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
           cat shorten-url-dep.yaml
 
