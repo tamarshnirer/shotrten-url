@@ -70,7 +70,8 @@ jobs:
         run: |
           sanitized_version=$(echo "${{ env.NEW_VERSION }}" | tr -cd '[:alnum:].-_')
           sanitized_version=$(echo "$sanitized_version" | sed 's/^[.-]*//;s/[.-]*$//')
-          echo "Renaming image to tamarshnirer/shorten-url:${sanitized_version}"
+          echo "$sanitized_version"
+          echo "Renaming image to tamarshnirer/shorten-url:$sanitized_version"
           docker tag test-image tamarshnirer/shorten-url:${sanitized_version}
 
       - name: Login to DockerHub
