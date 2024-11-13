@@ -66,13 +66,16 @@ jobs:
           echo "Current TAG: $current_version"
           echo "New Version: $new_version"
 
-      - name: Sanitize new_version  
+      - name: Sanitize new_version and Save it as an environment variable
         run: |
           sanitized_version=$(echo "${{ env.NEW_VERSION }}" | tr -cd '[:alnum:].-_')
           sanitized_version=$(echo "$sanitized_version" | sed 's/^[.-]*//;s/[.-]*$//')
-          echo "$sanitized_version"
-          echo "Renaming image to tamarshnirer/shorten-url:$sanitized_version"
-          docker tag test-image tamarshnirer/shorten-url:$sanitized_version
+          echo "SANITIZED_NEW_VERSION=${sanitized_version}" >> $GITHUB_ENV
+
+      - name: Rename the Image with the Sanitized Version
+        run: |
+          echo "Renaming image to tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
+          docker tag test-image tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -81,7 +84,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push Image with New Tag
-        run: docker push tamarshnirer/shorten-url:$sanitized_version
+        run: docker push tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}
 
       - name: Checkout Target Repository
         uses: actions/checkout@v4
@@ -93,7 +96,7 @@ jobs:
       - name: Update Deployment File
         run: |
           cd example-gitops
-          NEW_IMAGE="tamarshnirer/shorten-url:$sanitized_version"
+          NEW_IMAGE="tamarshnirer/shorten-url:${{ env.SANITIZED_NEW_VERSION }}"
           sed -i "s|image: .*|image: ${NEW_IMAGE}|" shorten-url-dep.yaml
           cat shorten-url-dep.yaml
 
@@ -104,5 +107,5 @@ jobs:
           git config user.email 'actions@github.com'
           git add shorten-url-dep.yaml
           git status
-          git commit -m 'Update deployment image'
+          git commit -m 'Update deployment image' 
           git push origin main
